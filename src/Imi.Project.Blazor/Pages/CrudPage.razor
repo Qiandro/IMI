@@ -1,0 +1,95 @@
+﻿@page "/Crud"
+
+@using Imi.Project.Blazor.Components.CrudApp
+@using Imi.Project.Blazor.Interfaces
+
+@inject ILogbookManager logbookManager
+@inject IEventservice eventservice
+
+<h3>CrudPage</h3>
+
+@if (IsUpdateActive == false)
+{
+    <label>Select Group:</label>
+    <select name="dropdownGroups" @onchange="@OnSelect">
+        @if (groups != null)
+        {
+            @foreach (var group in groups)
+            {
+                <option value="@group.Id">@group.Name</option>
+            }
+        }
+
+    </select>
+
+    @if (IsCreateActive)
+    {
+        <CrudCreateForm GroupId="@groupid" OnAdd="OnAdd"></CrudCreateForm>
+    }
+
+}
+
+
+@if (selectedGroup is not null)
+{
+    <CrudReadTable updateActive="@ToggleActive" selectedGroup="@selectedGroup" events="@events"></CrudReadTable>
+}
+
+@code {
+
+
+    public bool IsCreateActive = false;
+    public bool IsUpdateActive = false;
+    public bool IsDeleteActive = false;
+    public List<Event> events = new List<Event>();
+    public IEnumerable<Group> groups = new List<Group>();
+    public string selectedGroup = null;
+    public string token;
+    public string groupid;
+
+
+
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        token = await logbookManager.Login();
+
+        if (token is not null)
+        {
+            groups = await logbookManager.GetGroups();
+            groupid = groups.FirstOrDefault().Id.ToString();
+            selectedGroup = groups.Where(g => g.Id == Guid.Parse(groupid)).FirstOrDefault().Name;
+            events = await eventservice.GetEvents(groupid);
+            IsCreateActive = true;
+            await InvokeAsync(StateHasChanged);
+        }
+
+    }
+
+    public async Task OnAdd(Event evnt)
+    {
+        events.Insert(0, evnt);
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    public async Task OnSelect(ChangeEventArgs e)
+    {
+        groupid = e.Value.ToString();
+        
+        events = await eventservice.GetEvents(groupid);
+        selectedGroup = groups.Where(g => g.Id == Guid.Parse(groupid)).FirstOrDefault().Name;
+        IsCreateActive = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void ToggleActive()
+    {
+        IsUpdateActive = !IsUpdateActive;
+    }
+
+
+
+
+}

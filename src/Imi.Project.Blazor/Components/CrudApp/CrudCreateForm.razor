@@ -1,0 +1,76 @@
+﻿@using Imi.Project.Blazor.Dto_s
+@using Imi.Project.Blazor.Interfaces
+
+@inject IEventservice eventservice
+
+<EditForm Model="@dtoModel" OnSubmit="@CreateEvent">
+    <label>Name:</label>
+    <InputText DisplayName="Name" @bind-Value="dtoModel.Name"></InputText>
+    <label>description</label>
+    <InputText DisplayName="Description" @bind-Value="dtoModel.Description"></InputText>
+
+    <InputDate @bind-Value="date"></InputDate>
+
+    <button type="submit">Add</button>
+</EditForm>
+
+@if (response != null)
+{
+    <p class="alert alert-success">@response</p>
+}
+
+@if (DateError is not null)
+{
+    <p class="alert alert-danger">@DateError</p>
+}
+
+@if (error is not null)
+{
+    <p class="alert alert-danger">@error</p>
+}
+
+@code {
+    [Parameter]
+    public string GroupId { get; set; }
+    [Parameter]
+    public EventCallback<Event> OnAdd { get; set; }
+
+
+    public string response;
+    public string error;
+    public string DateError;
+    public DateTime date = DateTime.Now;
+    private CreateEventDto dtoModel = new CreateEventDto();
+
+    public async Task CreateEvent()
+    {
+        dtoModel.GroupId = Guid.Parse(GroupId);
+        dtoModel.StartDate = date;
+        dtoModel.EndDate = date;
+
+
+
+        if (dtoModel.Name == null || dtoModel.Description == null)
+        {
+            error = $"Please fill in all input fields";
+            if (date.Date < DateTime.Now.Date)
+            {
+                DateError = $"u cant make an event in the past";
+                date = DateTime.Now;
+            }
+        }
+        else
+        {
+            error = null;
+            response = "Event created";
+            Event evnt = await eventservice.CreateEvent(dtoModel);
+            await OnAdd.InvokeAsync(evnt);
+            dtoModel.Description = null;
+            dtoModel.Name = null;
+        }
+
+    }
+
+
+
+}

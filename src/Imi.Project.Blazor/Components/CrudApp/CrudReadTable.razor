@@ -1,0 +1,163 @@
+﻿@using Imi.Project.Blazor.Components.CrudApp
+@using Imi.Project.Blazor.Dto_s
+
+@inject Imi.Project.Blazor.Interfaces.IEventservice eventservice
+@inject Imi.Project.Blazor.Interfaces.ILogbookManager logbookManager
+
+
+
+@if (IsUpdateActive is false)
+{
+    @if (events.Count() != 0)
+    {
+        <h3>Events from @selectedGroup </h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date of Event</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Update</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                @foreach (var evnt in events)
+                {
+                    @if (evnt.DeletedOn is null)
+                    {
+                        <tr>
+                            <td>@evnt.StartDate - @evnt.EndDate</td>
+                            <td>@evnt.Name</td>
+                            <td>@evnt.Description</td>
+                            <CrudButtons id="@evnt.EventId" deletedEvent="DeleteEvent" updatedEvent="UpdateEvent"></CrudButtons>
+
+                        </tr>
+                    }
+
+
+
+                }
+
+            </tbody>
+
+        </table>
+
+    }
+}
+else
+{
+    <EditForm  Model="@updateEvent" OnSubmit="@SubmitEvent">
+        <label>Name:</label>
+        <InputText DisplayName="Name" @bind-Value="updateEvent.Name"></InputText>
+        <label>description</label>
+        <InputText DisplayName="Description" @bind-Value="updateEvent.Description"></InputText>
+        <label>From</label>
+        <InputDate @bind-Value="updateEvent.StartDate"></InputDate>
+        <label>To</label>
+        <InputDate @bind-Value="updateEvent.EndDate"></InputDate>
+
+        <label>Select Group:</label>
+        <select name="dropdownGroups" @bind="updateEvent.GroupId" >
+            @if (groups != null)
+            {
+                @foreach (var group in groups)
+                {
+                    <option value="@group.Id">@group.Name</option>
+                }
+            }
+
+        </select>
+
+        <button type="submit">Update</button>
+    </EditForm>
+}
+
+
+
+@code {
+    [Parameter]
+    public List<Event> events { get; set; } = new List<Event>();
+    [Parameter]
+    public string selectedGroup { get; set; }
+
+    [Parameter]
+    public EventCallback updateActive { get; set; }
+
+    public UpdateEventDto dtoModel = new UpdateEventDto();
+
+    public int SelectedEvent;
+
+    public string response;
+    public string error;
+    public string DateError;
+    public bool IsUpdateActive = false;
+    public Guid groupid;
+    public Event updateEvent;
+    public IEnumerable<Group> groups = new List<Group>();
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        groups = await logbookManager.GetGroups();
+
+    }
+
+    public async Task DeleteEvent(Event deletedEvent)
+    {
+        var evnt = events.Where(e => e.EventId == deletedEvent.EventId).FirstOrDefault();
+
+
+        events.Remove(evnt);
+    }
+
+    public async Task UpdateEvent(Event updatedEvent)
+    {
+        await updateActive.InvokeAsync();
+        IsUpdateActive = true;
+        updateEvent = events.Where(e => e.EventId == updatedEvent.EventId).FirstOrDefault();
+        groupid = updateEvent.GroupId;
+        SelectedEvent = events.IndexOf(updateEvent);
+    }
+
+    public async Task SubmitEvent()
+    {
+        if (updateEvent.Name == "" || updateEvent.Description == "")
+        {
+            error = $"Please fill in all input fields";
+
+        }
+        else
+        {
+            error = null;
+            response = "Event created";
+
+            dtoModel.StartDate = updateEvent.StartDate;
+            dtoModel.EndDate = updateEvent.EndDate;
+            dtoModel.Name = updateEvent.Name;
+            dtoModel.Description = updateEvent.Description;
+            dtoModel.EventId = updateEvent.EventId;
+            dtoModel.GroupId = updateEvent.GroupId;
+
+
+
+            Event evnt = await eventservice.UpdateEvent(dtoModel);
+            events.RemoveAt(SelectedEvent);
+            if (evnt.GroupId.ToString() == groupid.ToString())
+            {
+                events.Insert(SelectedEvent, evnt);
+            }
+
+            //events = await eventservice.GetEvents(groupid.ToString());
+            IsUpdateActive = false;
+            await updateActive.InvokeAsync();
+        }
+
+
+
+
+    }
+
+
+}

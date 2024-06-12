@@ -1,0 +1,182 @@
+﻿<div id="messages">
+    <div v-if="data">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    @*<th scope="col">Sender</th>*@
+                    <th scope="col">Content</th>
+                    <th scope="col">Send time</th>
+                    <th scope="col">Edit</th>
+                    <th scope="col">Delete</th>
+                </tr>
+            </thead>
+            <tbody v-for="message in messages">
+                <tr>
+                    @*<td>{{getSender(message.senderId)}}</td>*@
+                    <td>{{message.content}}</td>
+                    <td>{{message.sentTime}}</td>
+                    <td><button type="button" v-on:click="editMessage(message)" class="btn btn-warning">Edit</button></td>
+                    <td><button type="button" v-on:click="deleteMessage(message)" class="btn btn-danger">Delete</button></td>
+                </tr>
+            </tbody>
+        </table>
+        <button type="button" v-on:click="createMessage" class="btn btn-success">Create</button>
+    </div>
+
+
+    <form v-if="edit" class="form-group" v-on:submit.prevent="submitEdit">
+        <div>
+            <h2>Edit message</h2>
+            <label>Message content</label>
+            <input class="form-control" type="text" aria-label="message content" v-model="editMessageModel.content">
+
+            <button class="btn btn-outline-primary" type="submit">update</button>
+            <button class="btn btn-outline-primary" v-on:click="toggleBack">Back</button>
+        </div>
+        <div class="alert alert-danger p-2 my-2" v-if="errorMessage">{{errorMessage}}</div>
+    </form>
+
+    <form v-if="create" class="form-group" v-on:submit.prevent="submitCreate">
+        <div>
+            <h2>New message</h2>
+            <label>Message content</label>
+            <input class="form-control" type="text" aria-label="message content" v-model="createMessageModel.content">
+
+            <button class="btn btn-outline-primary" type="submit">create</button>
+            <button class="btn btn-outline-primary" v-on:click="toggleBack">Back</button>
+        </div>
+        <div class="alert alert-danger p-2 my-2" v-if="errorMessage">{{errorMessage}}</div>
+    </form>
+
+
+</div>
+
+    @section Scripts{
+        <script>
+            var app = new Vue({
+                el: '#messages',
+                data: {
+                    id: null,
+                    messages: null,
+                    errorMessage: "",
+                    data: true,
+                    create: false,
+                    edit: false,
+                    createMessageModel: {
+                        content: null,
+                        groupId: this.id,
+                    },
+                    editMessageModel: {
+                        messageId: null,
+                        content: null,
+                    }
+                },
+                created: function () {
+                    this.id = sessionStorage.getItem('groupId');
+                    this.getMessages();
+                },
+                methods: {
+                    getMessages: async function () {
+                        var self = this;
+                              
+                        axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+
+                        const axiosInstance = axios.create();
+
+                        await axiosInstance.get(baseUrl + "Messages/Group/" + self.id)
+                            .then((response) => {
+                                self.messages = response.data;
+                            })
+                            .catch((error) => {
+                                // Handle error case here
+                                self.message = error;
+                            });
+                        console.log(self.messages);
+                    },
+                    deleteMessage: async function (message) {
+                        var self = this;
+                        axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+                        const axiosInstance = axios.create();
+
+                        await axiosInstance.delete(baseUrl + "api/Messages/" + message.messageId)
+                            .then((response) => {
+                                console.log(response);
+                            }).catch((error) => {
+                                console.log(error);
+                            });
+                        location.reload();
+                    },
+                    editMessage: function (message) {
+                        var self = this;
+
+                        self.editMessageModel.messageId = message.messageId;
+                        self.editMessageModel.content = message.content;
+
+                        self.edit = true;
+                        self.data = false;
+                    },
+                    createMessage: function () {
+                        var self = this;
+                        self.create = true;
+                        self.data = false;
+                    },
+                    toggleBack: function () {
+                        var self = this;
+                        self.errorMessage = null;
+                        if (self.edit == true) {
+                            self.edit = false;
+                        }
+                        if (self.create == true) {
+                            self.create = false;
+                        }
+                        self.data = true;
+                    },
+                    submitEdit: async function () {
+                        var self = this;
+
+                        if (self.editMessageModel.content == "" || self.createMessageModel.content == null) {
+                            self.errorMessage = "Please enter a message"
+                        }
+                        else {
+
+                            axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+                            const axiosInstance = axios.create();
+                            await axiosInstance.put(baseUrl + "api/Messages/", self.editMessageModel)
+                                .then((response) => {
+                                    console.log(response);
+                                    self.errorMessage = null;
+                                    location.reload();
+                                    self.toggleBack();
+                                }).catch((error) => {
+                                    console.log(error);
+                                    self.errorMessage = "Something went wrong";
+                                });
+                        }
+                    },
+                    submitCreate: async function () {
+                        var self = this;
+                        if (self.createMessageModel.content == "" || self.createMessageModel.content == null ) {
+                            self.errorMessage = "Please enter a message"
+                        }
+                        else {
+                        axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+                        const axiosInstance = axios.create();
+                        self.createMessageModel.groupId = self.id;
+                        await axiosInstance.post(baseUrl + "api/Messages/", self.createMessageModel)
+                            .then((response) => {
+                                console.log(response);
+                                self.errorMessage = null;
+                                location.reload();
+                                self.toggleBack();
+                            }).catch((error) => {
+                                console.log(error);
+                                self.errorMessage = "Something went wrong";
+                            });
+                        }
+                    },
+                    
+                    
+                }
+            });
+        </script>
+    }

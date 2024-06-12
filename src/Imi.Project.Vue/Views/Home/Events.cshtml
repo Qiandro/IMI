@@ -1,0 +1,222 @@
+﻿<div id="events">
+
+    <div v-if="data">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">Event</th>
+                    <th scope="col">On:</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Edit</th>
+                    <th scope="col">Delete</th>
+                </tr>
+            </thead>
+            <tbody v-for="event in events">
+                <tr>
+                    <td>{{event.name}}</td>
+                    <td>{{event.startDate}} - {{event.endDate}}</td>
+                    <td>{{event.description}}</td>
+                    <td><button type="button" v-on:click="editEvent(event)" class="btn btn-warning">Edit</button></td>
+                    <td><button type="button" v-on:click="deleteEvent(event)" class="btn btn-danger">Delete</button></td>
+                </tr>
+            </tbody>
+        </table>
+        <button type="button" v-on:click="createEvent" class="btn btn-success">Create</button>
+    </div>
+
+    <form v-if="edit" class="form-group" v-on:submit.prevent="submitEdit">
+        <div>
+            <h2>Edit</h2>
+            <label>name</label>
+            <input class="form-control" type="text" aria-label="name" v-model="updateEvent.name">
+
+            <label>description</label>
+            <input class="form-control" type="text" aria-label="description" v-model="updateEvent.description">
+
+            <label>start Date</label>
+            <input type="datetime-local"
+                   value="updateEvent.startDate"
+                   v-model="updateEvent.startDate">
+
+            <label>end date</label>
+            <input type="datetime-local"
+                   value="updateEvent.endDate"
+                   v-model="updateEvent.endDate">
+
+            <button class="btn btn-outline-primary" type="submit">update</button>
+            <button class="btn btn-outline-primary" v-on:click="toggleBack">Back</button>
+        </div>
+        <div class="alert alert-danger p-2 my-2" v-if="errorMessage">{{errorMessage}}</div>
+    </form>
+
+    <form v-if="create" class="form-group" v-on:submit.prevent="submitCreate">
+        <div>
+            <h2>Create</h2>
+            <label>name</label>
+            <input class="form-control" type="text" aria-label="name" v-model="createEventModel.name">
+
+            <label>description</label>
+            <input class="form-control" type="text" aria-label="desription" v-model="createEventModel.description">
+
+            <label>start date</label>
+            <input type="datetime-local"
+                   value="createEventModel.startDate"
+                   v-model="createEventModel.startDate">
+
+            <label>end date</label>
+            <input type="datetime-local"
+                   value="createEventModel.endDate"
+                   v-model="createEventModel.endDate">
+
+            <button class="btn btn-outline-primary" type="submit">create</button>
+            <button class="btn btn-outline-primary" v-on:click="toggleBack">Back</button>
+        </div>
+        <div class="alert alert-danger p-2 my-2" v-if="errorMessage">{{errorMessage}}</div>
+    </form>
+
+
+</div>
+
+@section Scripts{
+    <script>
+    var app = new Vue({
+        el: '#events',
+        data: {
+            message: "test",
+            events: null,
+            errorMessage: "",
+            id: null,
+            data: true,
+            create: false,
+            edit: false,
+            updateEvent: {
+                groupId: "",
+                eventId: null,
+                name: null,
+                description: null,
+                startDate: "",
+                endDate: "",
+            },
+            createEventModel: {
+                groupId: this.id,
+                name: null,
+                description: null,
+                startDate: "",
+                endDate: "",
+            }
+        },
+        created: function () {
+            this.id = sessionStorage.getItem('groupId');
+            console.log(this.id);
+            this.getEvents();
+        },
+        methods: {
+            getEvents: async function () {
+                var self = this;
+                axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+
+                const axiosInstance = axios.create();
+
+                await axiosInstance.get(baseUrl + "api/Events/Group/" + self.id)
+                    .then((response) => {
+                        self.events = response.data;
+                    })
+                    .catch((error) => {
+                        // Handle error case here
+                        self.message = error;
+                    });
+            },
+            editEvent: function (event) {
+                var self = this;
+
+                self.updateEvent.eventId = event.eventId;
+                self.updateEvent.name = event.name;
+                self.updateEvent.description = event.description;
+                self.updateEvent.groupId = self.id;
+
+                self.edit = true;
+                self.data = false;
+            },
+            createEvent: function () {
+                var self = this;
+                self.create = true;
+                self.data = false;
+            },
+            deleteEvent: async function (event) {
+                var self = this;
+                axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+                const axiosInstance = axios.create();
+                await axiosInstance.delete(baseUrl + "api/Events/" + event.eventId)
+                    .then((response) => {
+                        console.log(response);
+                    }).catch((error) => {
+                        console.log(error);
+                    });
+                location.reload();
+            },
+            toggleBack: function () {
+                var self = this;
+                self.errorMessage = null;
+                if (self.edit == true) {
+                    self.edit = false;
+                }
+                if (self.create == true) {
+                    self.create = false;
+                }
+                self.data = true;
+            },
+            submitCreate: async function () {
+                var self = this;
+                axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+                const axiosInstance = axios.create();
+
+                self.createEventModel.groupId = self.id;
+                if (self.createEventModel.name == "" || self.createEventModel.name == null) {
+                    self.errorMessage = "Please enter a name"
+                } else if (self.createEventModel.description == "" || self.createEventModel.description == null) {
+                    self.errorMessage = "Please enter a description"
+                }
+                else if (Date.parse(self.createEventModel.startDate) > Date.parse(self.createEventModel.endDate)) {
+                    self.errorMessage = "Start date cant be after endDate"
+                }
+                else {
+                await axiosInstance.post(baseUrl + "api/Events", self.createEventModel)
+                    .then((response) => {
+                        console.log(response);
+                        self.errorMessage = null;
+                        location.reload();
+                        self.toggleBack();
+                    }).catch((error) => {
+                        console.log(error);
+                        self.errorMessage = "please fill in all dates";
+                    });
+                }
+            },
+            submitEdit: async function () {
+                var self = this;
+                axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+
+                if (self.updateEvent.name == "" || self.updateEvent.name == null) {
+                    self.errorMessage = "Please enter a name"
+                } else if (self.updateEvent.description == "" || self.updateEvent.description == null) {
+                    self.errorMessage = "Please enter a description"
+                }
+                else {
+                    const axiosInstance = axios.create();
+                    console.log(self.updateEvent);
+                    await axiosInstance.put(baseUrl + "api/Events/", self.updateEvent)
+                        .then((response) => {
+                            console.log(response);
+                            self.errorMessage = null;
+                            location.reload();
+                            this.toggleBack();
+                        }).catch((error) => {
+                            console.log(error);
+                            self.errorMessage = "please fill in all dates";
+                        });
+                }
+            },
+        }
+    });
+    </script>
+}

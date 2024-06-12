@@ -1,0 +1,64 @@
+﻿
+<h3>Events from @SelectedGroup </h3>
+
+@if (Events.Count() != 0)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Action</th>
+                <th>Date of Event</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Date of action</th>
+            </tr>
+        </thead>
+        <tbody>
+
+            @foreach (var evnt in Events)
+            {
+                <tr>
+                    <td class="text-success">Added:</td>
+                    <td>@evnt.StartDate - @evnt.EndDate</td>
+                    <td>@evnt.Name</td>
+                    <td>@evnt.Description</td>
+                    <td>@evnt.CreationDate</td>
+                </tr>
+                @if (evnt.LastEditedOn != null)
+                {
+                    <tr>
+                        <td class="text-warning">Updated on:</td>
+                        <td>@evnt.StartDate - @evnt.EndDate</td>
+                        <td>@evnt.Name</td>
+                        <td>@evnt.Description</td>
+                        <td>@evnt.LastEditedOn</td>
+                    </tr>
+
+                }
+                @if (evnt.DeletedOn != null)
+                {
+                    <tr>
+                        <td class="text-danger">Deleted on:</td>
+                        <td>@evnt.StartDate - @evnt.EndDate</td>
+                        <td>@evnt.Name</td>
+                        <td>@evnt.Description</td>
+                        <td>@evnt.LastEditedOn</td>
+                    </tr>
+                }
+
+            }
+
+        </tbody>
+
+    </table>
+
+}
+
+@code {
+    [Parameter]
+    public string SelectedGroup { get; set; }
+
+    [Parameter]
+    public IEnumerable<Event> Events { get; set; }
+
+}

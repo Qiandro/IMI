@@ -1,0 +1,50 @@
+﻿<p>extern</p>
+
+<div id="extern">
+    <button class="btn btn-outline-primary" v-on:click="randomPokemon">Random Pokemon</button>
+    <div v-if="callCompleted">
+        <div class="card" style="width: 18rem;">
+            <img class="card-img-top" v-bind:src="pokemon.image" alt="Card image cap">
+            <div class="card-body">
+                <h5 class="card-title">{{pokemon.name}}</h5>
+                <p class="card-text">{{pokemon.type}}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@section Scripts{
+<script>
+    var app = new Vue({
+        el: '#extern',
+        data: {
+            message: "test",
+            callCompleted: false,
+            pokemon: {
+                name: null,
+                image: null,
+                type: null,
+            },
+        },
+        methods: {
+            randomPokemon: async function () {
+                var self = this;
+                var random = Math.floor(Math.random() * 999) + 1;
+                await axios.get("https://pokeapi.co/api/v2/pokemon/" + random)
+                    .then((response) => {
+                        self.pokemon.name = response.data.name;
+                        self.pokemon.image = response.data.sprites['front_default'];
+                        self.pokemon.type = response.data.types.map((type) => type.type.name).join(', ');
+                        self.callCompleted = true;
+                    })
+                    .catch((error) => {
+                        // Handle error case here
+                        console.log(error);
+                        self.message = "error";
+                    });
+            },
+        }
+    });
+</script>}

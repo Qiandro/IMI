@@ -1,0 +1,186 @@
+﻿<div id="groups">
+    <div v-if="data">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Events</th>
+                    <th scope="col">Messages</th>
+                    <th scope="col">Edit</th>
+                    <th scope="col">Delete</th>
+                </tr>
+            </thead>
+            <tbody v-for="group in groups">
+                <tr>
+                    <td>{{group.name}}</td>
+                    <td><button type="button" v-on:click="getEvents(group)" class="btn btn-primary">Events</button></td>
+                    <td><button type="button" v-on:click="getMessages(group)" class="btn btn-primary">Messages</button></td>
+                    <td><button type="button" v-on:click="editGroup(group)" class="btn btn-warning">Edit</button></td>
+                    <td><button type="button" v-on:click="deleteGroup(group)" class="btn btn-danger">Delete</button></td>
+                </tr>
+            </tbody>
+        </table>
+        <button type="button" v-on:click="createGroup" class="btn btn-success">Create</button>
+    </div>
+
+    <form v-if="edit" class="form-group" v-on:submit.prevent="submitEdit">
+        <div>
+            <h2>Edit</h2>
+            <label>Group name</label>
+            <input class="form-control" type="text" aria-label="group name" v-model="updateGroup.name">
+
+            <button class="btn btn-outline-primary" type="submit">update</button>
+            <button class="btn btn-outline-primary" v-on:click="toggleBack">Back</button>
+        </div>
+        <div class="alert alert-danger p-2 my-2" v-if="errorMessage">{{errorMessage}}</div>
+    </form>
+
+    <form v-if="create" class="form-group" v-on:submit.prevent="submitCreate">
+        <div>
+            <h2>Create</h2>
+            <label>Group name</label>
+            <input class="form-control" type="text" aria-label="group name" v-model="createGroupModel.name">
+
+            <button class="btn btn-outline-primary" type="submit">create</button>
+            <button class="btn btn-outline-primary" v-on:click="toggleBack">Back</button>
+        </div>
+        <div class="alert alert-danger p-2 my-2" v-if="errorMessage">{{errorMessage}}</div>
+    </form>
+
+</div>
+
+@section Scripts{
+    <script>
+        var app = new Vue({
+            el: '#groups',
+            data: {
+                message: "test",
+                errorMessage: "",
+                groups: null,
+                data: true,
+                create: false,
+                edit: false,
+                updateGroup: {
+                    creatorId: null,
+                    id: null,
+                    name: null,
+                    img: null,
+                },
+                createGroupModel: {
+                    name: null,
+                    img: "",
+                }
+            },
+            created: function () {
+                this.getGroups();
+            },
+            methods: {
+                getGroups: async function () {
+                    var self = this;
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+
+                    const axiosInstance = axios.create();
+
+                    await axiosInstance.get(baseUrl + "api/Groups")
+                        .then((response) => {
+                            self.groups = response.data;
+                        })
+                        .catch((error) => {
+                            console.log(error);
+                        });
+                },
+                getEvents: function (group) {
+                    sessionStorage.setItem('groupId', group.id);
+                    window.location.href = "https://5wfgv6cg-44373.euw.devtunnels.ms/Home/Events";
+                },
+                getMessages: function (group) {
+                    sessionStorage.setItem('groupId', group.id);
+                    window.location.href = "https://5wfgv6cg-44373.euw.devtunnels.ms/Home/Messages";
+                },
+                editGroup: function (group) {
+                    var self = this;
+
+                    self.updateGroup.id = group.id;
+                    self.updateGroup.name = group.name;
+                    self.updateGroup.img = group.img;
+                    self.updateGroup.creatorId = group.creatorId;
+
+                    self.edit = true;
+                    self.data = false;
+                },
+                createGroup: function() {
+                    var self = this;
+                    self.create = true;
+                    self.data = false;
+                },
+                deleteGroup: async function (group) {
+                    var self = this;
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+                    const axiosInstance = axios.create();
+
+                    await axiosInstance.delete(baseUrl + "api/Groups/" + group.id)
+                        .then((response) => {
+                            console.log(response);
+                        }).catch((error) => {
+                            console.log(error);
+                        });
+                    location.reload();
+                },
+                submitEdit: async function () {
+                    var self = this;
+
+                    if (self.updateGroup.name == "" || self.updateGroup.name == null) {
+                        self.errorMessage = "Please enter a message"
+                    }
+                    else {
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+                    const axiosInstance = axios.create();
+                    await axiosInstance.put(baseUrl + "api/Groups/", self.updateGroup)
+                        .then((response) => {
+                            console.log(response);
+                            self.errorMessage == null;
+                            location.reload();
+                            this.toggleBack();
+                        }).catch((error) => {
+                            console.log(error);
+                            self.errorMessage = "Something went wrong";
+                        });
+                    
+                    }
+                },
+                submitCreate: async function () {
+                    var self = this;
+                    if (self.createGroupModel.name == "" || self.createGroupModel.name == null) {
+                        self.errorMessage = "Please enter a message"
+                    }
+                    else { 
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+                    const axiosInstance = axios.create();
+                    await axiosInstance.post(baseUrl + "api/Groups/", self.createGroupModel)
+                        .then((response) => {
+                            console.log(response);
+                            self.errorMessage = null;
+                            location.reload();
+                            this.toggleBack();
+                        }).catch((error) => {
+                            console.log(error);
+                            self.errorMessage = "Something went wrong";
+                        });
+                    
+                    }
+                },
+                toggleBack: function () {
+                    var self = this;
+                    self.errorMessage = null;
+                    if (self.edit == true) {
+                        self.edit = false;
+                    }
+                    if (self.create == true) {
+                        self.create = false;
+                    }
+                    self.data = true;
+                }
+            }
+        });
+    </script>
+}

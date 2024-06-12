@@ -1,0 +1,158 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+<div id="login">
+    <div v-if="userIsLoggedIn == false">
+
+        <form class="form-group" role="login" v-if="isRegister == false" v-on:submit.prevent="submitLogin">
+            <h2>Login</h2>
+            <label>Email</label>
+            <input class="form-control" type="email" placeholder="e-mail" aria-label="E-mail" v-model="loginModel.Email">
+            <label>Password</label>
+            <input class="form-control" type="password" placeholder="password" aria-label="Password" v-model="loginModel.Password">
+            <button class="btn btn-outline-primary" type="submit">Login</button>
+            <button class="btn btn-outline-primary" v-on:click="toggleForms">Register</button>
+            <div class="alert alert-danger p-2 my-2" v-if="errorMessage">{{errorMessage}}</div>
+        </form>
+        
+
+        <form v-if="isRegister == true" class="form-group" v-on:submit.prevent="submitRegister">
+            <div>
+                <h2>Register</h2>
+                <label>First name</label>
+                <input class="form-control" type="text" placeholder="First name" aria-label="E-mail" v-model="registerModel.FirstName">
+                <label>Last name</label>
+                <input class="form-control" type="text" placeholder="Last name" aria-label="Password" v-model="registerModel.LastName">
+                <label>Email</label>
+                <input class="form-control" type="email" placeholder="e-mail" aria-label="E-mail" v-model="registerModel.Email">
+                <label>password</label>
+                <input class="form-control" type="password" placeholder="password" aria-label="Password" v-model="registerModel.Password">
+                <label>Terms and conditions</label>
+                <input class="form-check" type="checkbox" placeholder="Terms and conditions" aria-label="E-mail" v-model="registerModel.AcceptTermsAndConditions">
+                <button class="btn btn-outline-primary" type="submit">Register</button>
+                <button class="btn btn-outline-primary" v-on:click="toggleForms">Back</button>
+            </div>
+            <div class="alert alert-danger p-2 my-2" v-if="errorMessage">{{errorMessage}}</div>
+        </form>
+    </div>
+    <div v-else>
+        <button style="float:right" class="btn btn-outline-danger" v-on:click="submitLogout">Logout</button>
+        <div class="row row-cols-2 g-2">
+
+            <div class="col">
+                <div class="card" style="width: 18rem;">
+                    <div class="card-body">
+                        <h5 class="card-title">Groups</h5>
+                        <a asp-controller="Home" asp-action="Groups" class="btn btn-primary">Go!</a>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="col">
+                <div class="card" style="width: 18rem;">
+                    <div class="card-body">
+                        <h5 class="card-title">Externe API</h5>
+                        <a asp-controller="Home" asp-action="Extern" class="btn btn-primary">Go!</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+</div>
+
+@section Scripts{
+<script>
+    var app = new Vue({
+        el: '#login',
+        data: {
+            errorMessage: null,
+            userIsLoggedIn: false,
+            isRegister: false,
+            loginModel: {
+                Email: "qiandro.claeys@gmail.com",//test purposes
+                Password: "Test123?"//test purposes
+            },
+            registerModel: {
+                Email: "",
+                Password: "",
+                FirstName: "",
+                LastName: "",
+                AcceptTermsAndConditions: false,
+            },
+        },
+        created: function () {
+            if (sessionStorage.getItem("token")) {
+                this.userIsLoggedIn = true;
+            }
+            else {
+                this.userIsLoggedIn = false;
+            }
+        },
+        methods: {
+            submitLogin: async function () {
+               var self = this;
+               await axios.post(baseUrl + "api/auth/login", self.loginModel)
+                    .then((response) => {
+                        var token = response.data.token;
+                        sessionStorage.setItem("token", token);
+                        
+                        self.userIsLoggedIn = true;
+                        self.errorMessage = null;
+                    })
+                   .catch((error) => {
+                        // Handle error case here
+                       self.errorMessage = "email or password are incorrect";
+                   });
+            },
+            toggleForms: function () {
+                var self = this;
+                self.isRegister = !self.isRegister;
+            },
+            submitRegister: async function () {
+                var self = this;
+                if (self.registerModel.Password == "" || self.registerModel.FirstName == "" || self.registerModel.LastName == "" || self.registerModel.Email == "") {
+                    self.errorMessage = "Please fill in all fields";
+                }
+
+                else {
+                    await axios.post(baseUrl + "api/auth/register", self.registerModel)
+                    .then((response) => {
+                        self.submitLogin.Email = self.registerModel.Email;
+                        self.submitLogin.Password = self.registerModel.Password;
+                        self.submitLogin();
+                    }).
+                    catch((error) => {
+                        // Handle error case here
+                        self.errorMessage = "Some of the data u entered was wrong";
+                    });
+                }
+            },
+            getUserName: async function () {
+                var self = this;
+
+                axios.defaults.headers.common['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+
+                const axiosInstance = axios.create();
+
+                await axiosInstance
+                    .get(baseUrl + "api/Users/" + readUserIdFromToken())
+                    .then((response) => {
+                        //al de rest van uw shit
+                        console.log(response);
+                        self.username = response.data.firstName;
+                    })
+                    .catch((error) => {
+                        // Handle error case here
+                    });
+            },
+            submitLogout: function () {
+                axiosConfig = null;
+                sessionStorage.clear();
+                this.userIsLoggedIn = false;
+            },
+        }
+    })
+</script>}

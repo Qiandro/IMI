@@ -1,0 +1,85 @@
+﻿@using Imi.Project.Blazor.Interfaces
+@using Imi.Project.Blazor.Components
+@using System.Linq
+@using Imi.Project.Blazor.Dto_s
+
+@inject ILogbookManager logbookManager
+
+<label>Select group:</label>
+<select name="dropdownGroups" @onchange="@OnSelect">
+    @if (groups != null)
+    {
+        @foreach (var group in groups)
+        {
+            <option value="@group.Id">@group.Name</option>
+        }
+    }
+
+</select>
+
+
+@if (id != null)
+{
+    <CreateForm groupId="@id" OnAdd="@CreateEvent"></CreateForm>
+}
+
+@if (response != null)
+{
+    <p class="alert alert-success">@response</p>
+}
+
+@if (selectedGroup != null)
+{
+
+    <Logbook SelectedGroup="@selectedGroup" Events="@events"></Logbook>
+}
+
+
+
+
+
+
+@code{
+    public IEnumerable<Event> events = new List<Event>();
+    public IEnumerable<Group> groups = new List<Group>();
+    public string selectedGroup = null;
+
+    public string token;
+    public string id;
+    public string response;
+
+    public async Task OnSelect(ChangeEventArgs e)
+    {
+        id = e.Value.ToString();
+        events = await logbookManager.GetEvents(id);
+        selectedGroup = groups.Where(g => g.Id == Guid.Parse(id)).FirstOrDefault().Name;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await logbookManager.OpenConnection();
+        logbookManager.RefreshEvents += RefreshEvents;
+        token = await logbookManager.Login();
+        if (token is not null)
+        {
+            groups = await logbookManager.GetGroups();
+            id = groups.FirstOrDefault().Id.ToString();
+            selectedGroup = groups.Where(g => g.Id == Guid.Parse(id)).FirstOrDefault().Name;
+            events = await logbookManager.GetEvents(id);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async void CreateEvent(CreateEventDto dto)
+    {
+        await logbookManager.CreateEvent(dto);
+    }
+
+    public async void RefreshEvents(object sender, EventArgs e)
+    {
+        response = "A new event has been added at " + DateTime.Now.ToString();
+        events = await logbookManager.GetEvents(id);
+        await InvokeAsync(StateHasChanged);
+    }
+}

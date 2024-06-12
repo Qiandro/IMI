@@ -1,0 +1,58 @@
+﻿@using Imi.Project.Blazor.Models
+@using Imi.Project.Blazor.Interfaces
+@using Imi.Project.Blazor.Dto_s
+
+@inject ILogbookManager logbookManager
+
+
+<EditForm Model="@dtoModel" OnSubmit="@CreateEvent">
+    <label>Name:</label>
+    <InputText DisplayName="Name" @bind-Value="dtoModel.Name"></InputText>
+    <label>description</label>
+    <InputText DisplayName="Description" @bind-Value="dtoModel.Description"></InputText>
+
+    <button type="submit">Add</button>
+</EditForm>
+
+@if (response != null)
+{
+    <p class="alert alert-success">@response</p>
+}
+
+@if (error is not null)
+{
+    <p class="alert alert-danger">@error</p>
+}
+
+@code {
+    [Parameter]
+    public string groupId { get; set; }
+    [Parameter]
+    public EventCallback<CreateEventDto> OnAdd { get; set; }
+
+    private CreateEventDto dtoModel = new CreateEventDto();
+
+    public string response;
+    public string error;
+
+    public async Task CreateEvent()
+    {
+        dtoModel.GroupId = Guid.Parse(groupId);
+        dtoModel.StartDate = DateTime.Now;
+        dtoModel.EndDate = dtoModel.StartDate.AddHours(2);
+
+        if (dtoModel.Name == null || dtoModel.Description == null)
+        {
+            error = $"Please fill in all input fields";
+        }
+        else
+        {
+            error = null;
+            await OnAdd.InvokeAsync(dtoModel);
+            response = "Event created";
+            dtoModel.Description = null;
+            dtoModel.Name = null;
+        }
+
+    }
+}

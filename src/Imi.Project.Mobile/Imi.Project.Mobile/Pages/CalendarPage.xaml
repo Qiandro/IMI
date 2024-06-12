@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Imi.Project.Mobile.Pages.CalendarPage"
+             xmlns:syncfusion="clr-namespace:Syncfusion.SfCalendar.XForms;assembly=Syncfusion.SfCalendar.XForms">
+
+    <ContentPage.Content>
+        <StackLayout>
+            <syncfusion:SfCalendar x:Name="calendar" InlineViewMode="Agenda" FirstDayofWeek="1"  
+                                   ShowInlineEvents="True" DataSource="{Binding ConvertedEvents}" SelectionChangedCommand="{Binding SelectionChanged}"
+                                   InlineItemTapped="Calendar_InlineItemTapped">
+            </syncfusion:SfCalendar>
+            <Button Margin="20,0,20,0" StyleClass="Button" Text="Add" Command="{Binding AddEvent}"></Button>
+        </StackLayout>
+    </ContentPage.Content>
+    
+</ContentPage>
+ 

@@ -1,0 +1,40 @@
+﻿@inject Imi.Project.Blazor.Interfaces.IEventservice eventservice
+
+
+<td><button class="btn btn-warning" @onclick="Update">Update</button></td>
+<td><button class="btn btn-danger" @onclick="Delete">Delete</button></td>
+
+@code {
+    [Parameter]
+    public Guid id { get; set; }
+    [Parameter]
+    public EventCallback<Event> deletedEvent { get; set; }
+    [Parameter]
+    public EventCallback<Event> updatedEvent { get; set; }
+
+
+    public string test;
+
+    public Event SelectedEvent = new Event();
+
+    protected async override Task OnInitializedAsync()
+    {
+        test = null;
+
+        StateHasChanged();
+    }
+
+    public async Task Delete()
+    {
+        SelectedEvent = await eventservice.GetEventById(id);
+        await eventservice.SoftDeleteEvent(SelectedEvent.EventId);
+        await deletedEvent.InvokeAsync(SelectedEvent);
+    }
+
+    public async Task Update()
+    {
+        SelectedEvent = await eventservice.GetEventById(id);
+        await updatedEvent.InvokeAsync(SelectedEvent);
+
+    }
+}
